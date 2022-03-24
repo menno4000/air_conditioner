@@ -42,7 +42,7 @@ const int extendTime = 15;
 const int airTime = 15;
 
 // counter for the window operations 
-int windowCounter = 0;
+volatile int windowCounter;
 // routine activity flag for window operations
 bool isRunning = false;
 
@@ -92,26 +92,8 @@ void setup()
   Serial.println("timer set.");
 }
 
-void loop()
+void stateMachine()
 {
-  if (digitalRead(IN3) == HIGH) {
-    if(digitalRead(IN4) == HIGH) {
-      //Serial.println("I'm in mode 0! Window is kept closed.");
-      automationState = 0;
-    } else {
-      //Serial.println("I'm in mode 1! Window is kept open.");
-      automationState = 1;
-    }
-  } else {
-    //Serial.println("I'm in mode 2! Window is operated by the chip.");
-    if (automationState == 1){
-      automationState == 3;
-    }
-    else {
-      automationState == 2;
-    }
-  }
-    
   if (automationState == 3) {
     // assure that window is closed
     // maybe this could trigger a warning LED
@@ -127,7 +109,7 @@ void loop()
           digitalWrite(IN2, LOW);
           motorState = 1;
           windowState = 0;
-          windowCounter = 0;
+          windowCounter = extendTime+1;
           automationState = 2;
         }
       }
@@ -155,6 +137,7 @@ void loop()
           }
         }
       }
+      windowCounter = 0;
       // routine for air conditiong
     } else {
       // window opening
@@ -223,7 +206,7 @@ void loop()
           digitalWrite(IN2, LOW);
           motorState = 1;
           windowState = 0;
-          windowCounter = 0;
+          windowCounter = extendTime+1;
         }
       }
     } else { 
@@ -235,7 +218,7 @@ void loop()
   if (automationState == 1) {
       if (windowState != 1) {
       if (motorState != 2) {
-        if (windowCounter < extendTime) {
+        if (windowCounter < retreatTime) {
           digitalWrite(IN1, HIGH);
           digitalWrite(IN2, LOW);
           motorState = 2;
@@ -245,22 +228,50 @@ void loop()
           digitalWrite(IN1, LOW);
           digitalWrite(IN2, LOW);
           motorState = 1;
-          windowCounter = 0;
+          windowCounter = retreatTime+1;
         }
       }
     } else { 
       windowCounter = 0;
     }
   }
-  
+}
+
+void loop()
+{
+  if (digitalRead(IN3) == LOW) {
+    // I'm in mode 0 and am keeping the window closed
+    automationState = 0;
+    isRunning = false;
+  } else if (digitalRead(IN4) == LOW){
+    //Serial.println("I'm in mode 2! Window is operated by the chip.");
+    if (windowState == 1){
+      automationState = 3;
+    }
+    else {
+      automationState = 2;
+    }
+  } else if (digitalRead(IN3) == HIGH && digitalRead(IN4) == HIGH){
+    // I'm in mode 1 and am keeping the window open
+    automationState = 1;
+    isRunning = false;
+  }
+  stateMachine();
 }
 
 
 ISR(TIMER1_COMPA_vect) {
   TCNT1 = 0;            // reset timer 1
   windowCounter ++;
-  
   Serial.println("timer moment.");
+  Serial.print("windowState: ");
+  Serial.println(windowState);
+  Serial.print("windowCounter: ");
+  Serial.println(windowCounter);
+  Serial.print("automationState: ");
   Serial.println(automationState);
-  
+  Serial.print("automationPhase: ");
+  Serial.println(automationPhase);
+ 
+
 }
