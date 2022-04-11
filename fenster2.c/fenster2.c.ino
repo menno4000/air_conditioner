@@ -48,8 +48,10 @@ void setup() {
 void loop() {
   if (digitalRead(IN3) == LOW) {
     // Serial.println("I'm in mode 0 and am keeping the window closed.");
+    eventTime = -900000;
     mode = 0;
   } else if (digitalRead(IN4) == LOW){
+    eventTime = -900000;
     mode = 1;
   } else if (digitalRead(IN3) == HIGH && digitalRead(IN4) == HIGH){
     // Serial.println("I'm in mode 2! Window is operated automatically.");
